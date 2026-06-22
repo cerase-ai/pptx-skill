@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "namespace": "studio.guidance",
+  "name": "pptx",
+  "type": "skill",
+  "display_name": "Pptx",
+  "description": "Crea una presentazione PowerPoint (.pptx) con slide editabili, o variante ODP / Google Slides. Delegata da `deck` (Path B) quando il formato richiesto è PPTX editabile.",
+  "license": "MIT"
+}
