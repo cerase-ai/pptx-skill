@@ -1,6 +1,6 @@
 ---
 name: pptx
-description: "Crea una presentazione PowerPoint (.pptx) con slide editabili, o variante ODP / Google Slides. Delegata da `deck` (Path B) quando il formato richiesto è PPTX editabile."
+description: "Creates a PowerPoint presentation (.pptx) with editable slides, or an ODP / Google Slides variant. Delegated to by `deck` (Path B) when the requested format is editable PPTX."
 ---
 # PPTX — PowerPoint / editable slides
 
