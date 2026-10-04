@@ -5,31 +5,43 @@ file (`.pptx`), an OpenDocument presentation (`.odp`) or Google Slides. The
 `deck` skill hands work to it when the person wants editable slides rather than
 the HTML/PDF render. The caller passes the workspace path of `presentation.md`
 (the draft `deck` wrote), the target format, the file name and an optional
-theme.
+template: a `.pptx` in the workspace whose look the slides take.
 
 ## What the assistant does
 
-- **`pptx`:** writes a script with `python-pptx` (a title slide, then content
-  slides with a title and bullets), saves the file in the workspace and
-  attaches it to the reply.
+- **`pptx`:** reads `presentation.md` and writes a `<name>-slides.md` file in
+  the workspace in the markdown shape the converter reads: a YAML block with
+  title and subtitle, a `##` heading per slide, a `#` heading alone for a
+  section slide, a columns block for side-by-side content, a pipe table in
+  place of each chart, and a `notes` block for speaker notes. It converts that
+  file with `cerase-office-converter.convert_md_to_pptx`, passing the template
+  as `reference_doc_path` when there is one. The converter writes the file to
+  `outputs/` in the workspace and returns its path, and the assistant attaches
+  it with `[[attach: <path>]]`.
 - **`odp`:** builds the `.pptx` first, then converts it with
   `cerase-office-converter.convert_pptx_to_odp`.
-- **`gslide`:** calls `google-workspace.slides_create` with the title and the
-  markdown, and returns the link.
+- **`gslide`:** builds the `.pptx`, uploads it to the person's Drive with
+  `google-workspace.uploadFile` and `convertToGoogleFormat: true`, and gives
+  the person the link of the new Google Slides file. When the Google Workspace
+  connector is not among the assistant's connectors, it says the
+  organisation's administrator has to assign it and sends the `.pptx`
+  instead.
 
-Style rules: a cover with title and subtitle and no bullets; a title and at
-most seven bullets per content slide, with at most one level of sub-bullets;
-numbers instead of adjectives; one idea per slide; no decorative images, video
-or audio; colour only for background and text; an overflowing slide is split,
-never auto-fitted. A request for ten slides gets eight to twelve; when the
-material needs more, the assistant asks before going further.
+Style rules: a cover with title and subtitle and no bullets; at most six
+bullets per content slide, with at most one level of sub-bullets; numbers
+instead of adjectives; one point per slide; no video or audio; an overflowing
+slide is split into two, never fitted by shrinking its text. A request for ten
+slides gets eight to twelve; when the material needs more, the assistant asks
+whether to deliver more slides or which part to leave out. The assistant's
+container has no Python, LibreOffice or pandoc, so the assistant never builds
+the file itself, and it never pastes file content or base64 in the chat.
 
 ## Requirements
 
-- Python with `python-pptx` wherever the assistant runs code, for `pptx` and as
-  the first step of `odp`.
-- The `cerase-office-converter` connector for `odp`.
-- A Google Workspace connector exposing `slides_create` for `gslide`.
+- The `cerase-office-converter` connector for every format:
+  `convert_md_to_pptx` builds the `.pptx`, and `convert_pptx_to_odp` converts
+  it for `odp`.
+- A Google Workspace connector exposing `uploadFile` for `gslide`.
 
 ## Files
 

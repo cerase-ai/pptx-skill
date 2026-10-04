@@ -1,79 +1,101 @@
 ---
 name: pptx
-description: "Creates a PowerPoint presentation (.pptx) with editable slides, or an ODP / Google Slides variant. Delegated to by `deck` (Path B) when the requested format is editable PPTX."
+description: "Creates a PowerPoint presentation (.pptx) with editable slides, or an OpenDocument (.odp) or Google Slides version of it. Delegated to by `deck` when the format asked for is editable slides."
 ---
-# PPTX — PowerPoint / editable slides
+# PPTX — editable slides
 
-Create `.pptx` PowerPoint slides (or .odp / Google Slides variant) from structured content. Invoked by `deck` (Path B) when the user wants editable slides rather than the fast HTML/PDF path.
+You write the slides as markdown in your workspace, and the office converter turns them into PowerPoint. Your container runs no Python, so you never build the file yourself: the converter does. Invoked by `deck` when the person wants slides they can edit rather than the HTML or PDF deck.
 
 ## Inputs
 
 From the caller:
-- **draft**: workspace path of `presentation.md` (format-agnostic markdown produced by `deck` Stage 2)
-- **target format**: `pptx` (PowerPoint), `odp` (LibreOffice), `gslide` (Google Slides)
-- **filename**: e.g. `q3-results-presentation.pptx`
-- **theme**: optional — default "clean light" if unset
+- **draft**: the workspace path of `presentation.md`, the deck `deck` wrote
+- **format**: `pptx` (PowerPoint), `odp` (LibreOffice) or `gslide` (Google Slides)
+- **file name**: such as `q3-results.pptx`
+- **template**: optional, a .pptx in the workspace whose look the slides take
 
-## Backend per format
+## Step 1 — write the slides file
 
-### `pptx` (native, fast)
-
-Use python-pptx in the workspace:
-
-```python
-from pptx import Presentation
-from pptx.util import Inches, Pt
-prs = Presentation()
-# Title slide
-slide = prs.slides.add_slide(prs.slide_layouts[0])
-slide.shapes.title.text = '<title>'
-slide.placeholders[1].text = '<subtitle>'
-# Content slide
-slide = prs.slides.add_slide(prs.slide_layouts[1])
-slide.shapes.title.text = '<heading>'
-tf = slide.placeholders[1].text_frame
-for i, bullet in enumerate(bullets):
-    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-    p.text = bullet
-    p.level = 0
-prs.save('<filename>.pptx')
-```
-
-Write to workspace. Attach to reply.
-
-### `odp` (via cerase-office-converter)
-
-Create `.pptx` natively, then:
+`presentation.md` is written for the HTML and PDF renderer, and part of its syntax means nothing to PowerPoint. Read it and write `<name>-slides.md` in the workspace, in this shape:
 
 ```
-call_recipe("cerase-office-converter.convert_pptx_to_odp", {input_b64: <base64 of .pptx>})
+---
+title: Q3 for the Northwind board
+subtitle: Revenue, costs, and the hire we ask for
+---
+
+# Part 1 — Results
+
+## Revenue grew 18% on the quarter
+
+- €2.3M in Q3, up from €1.95M
+- Three new accounts signed
+
+## Two regions carried the growth
+
+:::::: {.columns}
+::: {.column}
+North: 12 new accounts
+:::
+::: {.column}
+South: 4 new accounts
+:::
+::::::
+
+## The hire costs €58,000 a year
+
+| Line | Cost |
+|---|---:|
+| Salary | €55,000 |
+| Tools | €3,000 |
+
+::: notes
+What the presenter says on this slide.
+:::
 ```
 
-### `gslide` (via google-workspace MCP)
+How each part of `presentation.md` carries over:
+- the `+++` block and the cover's `# ` title and line under it → the YAML block's `title` and `subtitle`
+- each `## ` slide → a `## ` slide, its title unchanged
+- a `:::chapter` act divider → a `# ` heading alone, which becomes a section slide
+- `:::columns` with its `:::col` parts → the `{.columns}` block above, one `{.column}` per column
+- a `:::chart` → its table, as a pipe table: PowerPoint gets the numbers, not the drawing
+- the `---` lines between slides can stay or go: a new `## ` starts a slide either way
+
+## Step 2 — convert
 
 ```
-call_recipe("google-workspace.slides_create", {
-  title: "<filename without ext>",
-  slides_markdown: <full file contents>,
-})
+call_recipe("cerase-office-converter.convert_md_to_pptx", {"path": "<name>-slides.md", "output_filename": "<name>.pptx"})
 ```
 
-Returns `{deck_id, deck_url}`.
+It answers `{path, filename, size_bytes}`: the deck is in your workspace at `path`, which is `outputs/<name>.pptx`. With a template, add `"reference_doc_path": "<template>.pptx"`.
+
+## Other formats
+
+- **odp**: `call_recipe("cerase-office-converter.convert_pptx_to_odp", {"path": "outputs/<name>.pptx", "output_filename": "<name>.odp"})`
+- **gslide** (Google Slides): make the .pptx, then upload it converted:
+  `call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.pptx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "convertToGoogleFormat": true})`
+  The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that Google Slides needs that connector, which the organisation's admin assigns, and send the .pptx instead.
+
+These calls are the complete set. Do not invent others.
+
+## Deliver
+
+Attach the file: `[[attach: outputs/<name>.pptx]]`. Never paste its content or any base64 in the chat.
 
 ## Style rules
 
-- **Cover slide**: title (40-44pt) + subtitle (18-22pt). No bullet list on cover.
-- **Content slides**: title at top (28-32pt), ≤ 7 bullets in body (16-18pt). Use `level` 0 for top bullets, `level` 1 for sub-bullets (max).
-- **Numbers > adjectives**: "€2.3M revenue Q3" beats "strong revenue this quarter".
-- **One concept per slide**: if you find yourself cramming 2 distinct points, split into 2 slides.
-- **No clipart / decorative images**: PoC slides are content-first. Photos go in workspace separately if uploaded.
+- **Cover**: title and subtitle only, no bullets.
+- **Content slides**: at most 6 bullets, one level of sub-bullet at most.
+- **Numbers over adjectives**: "€2.3M revenue in Q3" beats "strong revenue this quarter".
+- **One point per slide**: two distinct points are two slides.
 
-## Slide count discipline
+## Slide count
 
-If the brief said "10 slides", produce 8-12 (10% wiggle room). If the source content overflows, propose: "il materiale è denso, ti consegno 14 slide o ne lascio fuori X?". Don't silently produce 25 slides when asked for 10.
+If the brief said 10 slides, deliver 8 to 12. When the material overflows, ask in their language whether to deliver more slides or which part to leave out; never deliver 25 when 10 were asked for.
 
 ## Don't
 
-- Don't try to embed videos / audio in PPTX — fragile across viewers.
-- Don't use color outside title (background) + bullet (text) — themes break otherwise.
-- Don't auto-fit text: when a slide overflows, split it. Auto-fit produces unreadable 8pt slides.
+- Don't write Python, or call `libreoffice` or `pandoc` from bash: none of them is in your container.
+- Don't embed video or audio.
+- Don't fit an overflowing slide by shrinking its text: split it into two.

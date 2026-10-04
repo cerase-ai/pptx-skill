@@ -6,4 +6,4 @@
 # of the bundle that ships to the agent.
 it:
   display_name: "Pptx"
-  description: "Crea una presentazione PowerPoint (.pptx) con slide editabili, o variante ODP / Google Slides. Delegata da `deck` (Path B) quando il formato richiesto è PPTX editabile."
+  description: "Crea una presentazione PowerPoint (.pptx) con slide modificabili, o una sua versione OpenDocument (.odp) o Google Slides. Viene richiamata da `deck` quando il formato richiesto sono slide modificabili."

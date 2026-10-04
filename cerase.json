@@ -4,6 +4,6 @@
   "name": "pptx",
   "type": "skill",
   "display_name": "Pptx",
-  "description": "Creates a PowerPoint presentation (.pptx) with editable slides, or an ODP / Google Slides variant. Delegated to by `deck` (Path B) when the requested format is editable PPTX.",
+  "description": "Creates a PowerPoint presentation (.pptx) with editable slides, or an OpenDocument (.odp) or Google Slides version of it. Delegated to by `deck` when the format asked for is editable slides.",
   "license": "MIT"
 }
