@@ -73,9 +73,13 @@ It answers `{path, filename, size_bytes}`: the deck is in your workspace at `pat
 ## Other formats
 
 - **odp**: `call_recipe("cerase-office-converter.convert_pptx_to_odp", {"path": "outputs/<name>.pptx", "output_filename": "<name>.odp"})`
-- **gslide** (Google Slides): make the .pptx, then upload it converted:
-  `call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.pptx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "convertToGoogleFormat": true})`
-  The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that Google Slides needs that connector, which the organisation's admin assigns, and send the .pptx instead.
+- **gslide** (Google Slides): make the .pptx, then upload it converted, with the upload call below, and only when the person asked for a Google file: the upload puts the content in their Drive. The answer carries the new file's `Link:`; give the person that link. If the Google Workspace connector is not among your connectors, say in their language that Google Slides needs that connector, which the organisation's admin assigns, and send the .pptx instead.
+
+The upload that makes the Google Slides file:
+
+```
+call_recipe("google-workspace.uploadFile", {"localPath": "outputs/<name>.pptx", "name": "<title>", "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation", "convertToGoogleFormat": true})
+```
 
 These calls are the complete set. Do not invent others.
 
